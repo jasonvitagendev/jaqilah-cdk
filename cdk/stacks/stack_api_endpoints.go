@@ -2,7 +2,8 @@ package stacks
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscertificatemanager"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
@@ -66,25 +67,30 @@ func NewApiEndpointsStack(scope constructs.Construct, id string, props *ApiEndpo
 		Validation: awscertificatemanager.CertificateValidation_FromDns(zone),
 	})
 
-	// rest api
-	apigateway := awsapigateway.NewLambdaRestApi(stack, jsii.String("ApiEndpointRestApi"), &awsapigateway.LambdaRestApiProps{
-		DomainName: &awsapigateway.DomainNameOptions{
-			DomainName:  jsii.String(props.ApiDomainName),
-			Certificate: cert,
-		},
-		Handler:        lambda,
-		CloudWatchRole: jsii.Bool(true),
-		DeployOptions: &awsapigateway.StageOptions{
-			LoggingLevel: awsapigateway.MethodLoggingLevel_ERROR,
-		},
+	// http api
+	domainName := awsapigatewayv2.NewDomainName(stack, jsii.String("ApiEndpointDomainName"), &awsapigatewayv2.DomainNameProps{
+		DomainName:  jsii.String(props.ApiDomainName),
+		Certificate: cert,
+	})
+
+	httpApi := awsapigatewayv2.NewHttpApi(stack, jsii.String("ApiEndpointHttpApi"), &awsapigatewayv2.HttpApiProps{
+		DefaultIntegration: awsapigatewayv2integrations.NewHttpLambdaIntegration(jsii.String("ApiEndpointsLambdaIntegration"), lambda, nil),
+	})
+
+	awsapigatewayv2.NewApiMapping(stack, jsii.String("ApiEndpointApiMapping"), &awsapigatewayv2.ApiMappingProps{
+		Api:        httpApi,
+		DomainName: domainName,
+		Stage:      httpApi.DefaultStage(),
 	})
 
 	// A record alias for api
 	awsroute53.NewARecord(stack, jsii.String("ApiAlias"), &awsroute53.ARecordProps{
 		Zone:       zone,
 		RecordName: jsii.String("api"),
-		Target:     awsroute53.RecordTarget_FromAlias(awsroute53targets.NewApiGateway(apigateway)),
-		Ttl:        awscdk.Duration_Seconds(jsii.Number(600)),
+		Target: awsroute53.RecordTarget_FromAlias(
+			awsroute53targets.NewApiGatewayv2DomainProperties(domainName.RegionalDomainName(), domainName.RegionalHostedZoneId()),
+		),
+		Ttl: awscdk.Duration_Seconds(jsii.Number(600)),
 	})
 
 	return stack
