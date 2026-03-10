@@ -1,0 +1,32 @@
+steps:
+  - label: ":docker: Build"
+    plugins:
+      - docker#v3.2.0:
+          always-pull: true
+          image: "johnlee8830/golang-nodejs-aws"
+          mount-buildkite-agent: true
+          propagate-environment: true
+    command: |
+      go mod tidy
+      
+      mkdir -p ./api
+      cd api
+      git clone "https://jasonvitagendev:${GITHUB_TOKEN}@github.com/jasonvitagendev/jaqilah-api.git"
+      cd ../
+      
+      pwd
+
+      # from Buildkite Web UI secrets and environment hooks
+      export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+      export CDK_ACCOUNT=$CDK_ACCOUNT
+      export CDK_REGION=$CDK_REGION
+
+      echo $CDK_REGION
+
+      export ENV=prod
+
+      cd cdk
+
+      cdk deploy -vv --require-approval never --all
