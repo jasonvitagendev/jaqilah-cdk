@@ -4,7 +4,7 @@ FROM docker:dind
 RUN apk add bash
 
 # Install Go (using apk)
-RUN apk add --no-cache go
+RUN apk add --no-cache go=1.25.8-r0
 
 # Install required system packages
 RUN apk add --no-cache git

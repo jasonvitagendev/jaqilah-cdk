@@ -17,7 +17,7 @@ func main() {
 	siteDomain := "mobile360.net"
 	hostedZoneId := "Z050234626CO0644WBJ3H"
 
-	stacks.NewApiEndpointsStack(app, "BeachyApiEndpointsStack", &stacks.ApiEndpointsStackProps{
+	stacks.NewApiEndpointsStack(app, "JaqilahApiEndpointsStack", &stacks.ApiEndpointsStackProps{
 		StackProps: awscdk.StackProps{
 			Env: env(),
 		},
